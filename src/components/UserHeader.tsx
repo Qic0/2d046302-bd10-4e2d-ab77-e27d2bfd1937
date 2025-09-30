@@ -12,12 +12,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { LogOut, User } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { UserProfileDialog } from '@/components/UserProfileDialog';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const UserHeader = () => {
   const { user, signOut, isAdmin } = useAuth();
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
   const location = useLocation();
   const isHomePage = location.pathname === "/";
+  const isMobile = useIsMobile();
 
   if (!user) return null;
 
@@ -26,10 +28,20 @@ const UserHeader = () => {
     : user.email?.charAt(0).toUpperCase() || 'U';
 
   return (
-    <div className="flex items-center gap-4">
-      <span className={`text-sm transition-colors duration-300 ${isHomePage ? "text-white" : "text-muted-foreground"}`}>
-        {isAdmin ? 'Администратор' : 'Сотрудник'}
-      </span>
+    <div className="flex items-center gap-2 sm:gap-4">
+      {isMobile ? (
+        // Мобильная версия: имя + аватар
+        <>
+          <span className={`text-sm font-medium transition-colors duration-300 ${isHomePage ? "text-white" : "text-foreground"}`}>
+            {user.full_name?.split(' ')[0] || 'Пользователь'}
+          </span>
+        </>
+      ) : (
+        // Десктопная версия: роль
+        <span className={`text-sm transition-colors duration-300 ${isHomePage ? "text-white" : "text-muted-foreground"}`}>
+          {isAdmin ? 'Администратор' : 'Сотрудник'}
+        </span>
+      )}
       
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

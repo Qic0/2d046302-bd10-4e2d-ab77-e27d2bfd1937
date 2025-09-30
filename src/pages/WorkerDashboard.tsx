@@ -161,15 +161,15 @@ const WorkerDashboard = () => {
   return <div className="min-h-screen bg-background pt-14">
       <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6">
         {/* Мобильная кнопка для открытия drawer */}
-        {isMobile && (
-          <div className="mb-4 flex items-center justify-between">
-            <h1 className="text-2xl font-bold">Мои задачи</h1>
-            <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
-              <DrawerTrigger asChild>
-                <Button variant="outline" size="icon" className="lg:hidden">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </DrawerTrigger>
+          {isMobile && (
+            <div className="mb-4 flex items-center justify-between">
+              <h1 className="text-2xl font-bold flex-1 text-center">Мои задачи</h1>
+              <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
+                <DrawerTrigger asChild>
+                  <Button variant="outline" size="icon" className="lg:hidden">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </DrawerTrigger>
               <DrawerContent className="max-h-[85vh]">
                 <DrawerHeader>
                   <DrawerTitle>Профиль и статистика</DrawerTitle>
