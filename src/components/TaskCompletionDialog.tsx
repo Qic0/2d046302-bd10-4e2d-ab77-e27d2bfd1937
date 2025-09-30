@@ -196,9 +196,32 @@ const TaskCompletionDialog: React.FC<TaskCompletionDialogProps> = ({
           <div>
             <h3 className="font-medium">{task.title}</h3>
             <p className="text-sm text-muted-foreground">{task.description}</p>
-            <p className="text-sm font-medium text-green-600 mt-2">
-              Оплата: {task.salary} ₽
-            </p>
+            {(() => {
+              const isOverdue = task.due_date && new Date(task.due_date) < new Date();
+              const penaltyAmount = task.salary ? Math.round(task.salary * 0.9) : 0;
+              
+              if (isOverdue) {
+                return (
+                  <div className="mt-2 space-y-1">
+                    <p className="text-sm font-medium text-red-600 line-through">
+                      Оплата: {task.salary} ₽
+                    </p>
+                    <p className="text-xs text-red-500">
+                      Штраф 10% за просрочку
+                    </p>
+                    <p className="text-sm font-bold text-red-700">
+                      К оплате: {penaltyAmount} ₽
+                    </p>
+                  </div>
+                );
+              }
+              
+              return (
+                <p className="text-sm font-medium text-green-600 mt-2">
+                  Оплата: {task.salary} ₽
+                </p>
+              );
+            })()}
           </div>
 
           <Alert>
