@@ -1,14 +1,21 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Filter, SortAsc } from 'lucide-react';
+import { Menu, User, TrendingUp, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
+import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from '@/components/ui/drawer';
 import WorkerTaskCard from '@/components/worker/WorkerTaskCard';
 import WorkerProfile from '@/components/worker/WorkerProfile';
 import WorkerMetrics from '@/components/worker/WorkerMetrics';
@@ -30,10 +37,12 @@ const WorkerDashboard = () => {
     toast
   } = useToast();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [filterStatus, setFilterStatus] = useState<'all' | 'current' | 'completed'>('current');
   const [sortBy, setSortBy] = useState<'deadline' | 'salary'>('deadline');
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Обновление времени каждую секунду
   useEffect(() => {
@@ -135,56 +144,97 @@ const WorkerDashboard = () => {
       return completedDate.toDateString() === today.toDateString();
     }).length
   };
+  const sidebarContent = (
+    <div className="space-y-6">
+      {user && <WorkerProfile user={user} isOnline={isUserOnline(user.id)} />}
+      <WorkerMetrics metrics={metrics} />
+      <CompletedTasksList tasks={completedTasks} />
+    </div>
+  );
+
   if (isLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin h-12 w-12 border-4 border-primary border-t-transparent rounded-full"></div>
       </div>;
   }
-  return <div className="min-h-screen bg-background pt-14">
-      {/* Основной контент - двухколоночная сетка */}
-      <div className="container mx-auto px-6 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Левая колонка - список задач (65%) */}
-          <div className="lg:col-span-2 space-y-4">
-            {/* Фильтры и сортировка */}
-            
 
+  return <div className="min-h-screen bg-background pt-14">
+      <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6">
+        {/* Мобильная кнопка для открытия drawer */}
+        {isMobile && (
+          <div className="mb-4 flex items-center justify-between">
+            <h1 className="text-2xl font-bold">Мои задачи</h1>
+            <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
+              <DrawerTrigger asChild>
+                <Button variant="outline" size="icon" className="lg:hidden">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </DrawerTrigger>
+              <DrawerContent className="max-h-[85vh]">
+                <DrawerHeader>
+                  <DrawerTitle>Профиль и статистика</DrawerTitle>
+                </DrawerHeader>
+                <div className="overflow-y-auto px-4 pb-6">
+                  {sidebarContent}
+                </div>
+              </DrawerContent>
+            </Drawer>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+          {/* Левая колонка - список задач */}
+          <div className="lg:col-span-2 space-y-4">
             {/* Список карточек задач */}
-            <div className="space-y-4">
-              {filteredAndSortedTasks.length === 0 ? <div className="text-center py-12 text-muted-foreground">
-                  <p className="text-xl">Нет задач для отображения</p>
-                </div> : filteredAndSortedTasks.map((task, index) => <WorkerTaskCard key={task.uuid_zadachi} task={task} currentTime={currentTime} onClick={() => setSelectedTask(task)} index={index} />)}
+            <div className="space-y-3 sm:space-y-4">
+              {filteredAndSortedTasks.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <p className="text-lg sm:text-xl">Нет задач для отображения</p>
+                </div>
+              ) : (
+                filteredAndSortedTasks.map((task, index) => (
+                  <WorkerTaskCard
+                    key={task.uuid_zadachi}
+                    task={task}
+                    currentTime={currentTime}
+                    onClick={() => setSelectedTask(task)}
+                    index={index}
+                  />
+                ))
+              )}
             </div>
           </div>
 
-          {/* Правая колонка - профиль и метрики (35%) */}
-          <div className="space-y-6">
-            {/* Профиль работника */}
-            {user && <WorkerProfile user={user} isOnline={isUserOnline(user.id)} />}
-
-            {/* KPI метрики */}
-            <WorkerMetrics metrics={metrics} />
-
-            {/* Список выполненных задач */}
-            <CompletedTasksList tasks={completedTasks} />
-          </div>
+          {/* Правая колонка - профиль и метрики (только desktop) */}
+          {!isMobile && (
+            <div className="hidden lg:block space-y-6">
+              {sidebarContent}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Диалог завершения задачи */}
-      {selectedTask && <TaskCompletionDialog task={selectedTask} isOpen={!!selectedTask} onClose={() => setSelectedTask(null)} onComplete={() => {
-      queryClient.invalidateQueries({
-        queryKey: ['worker-tasks', user?.id]
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['worker-user-data', user?.id]
-      });
-      setSelectedTask(null);
-      toast({
-        title: "Успех",
-        description: "Задача успешно завершена!"
-      });
-    }} />}
+      {selectedTask && (
+        <TaskCompletionDialog
+          task={selectedTask}
+          isOpen={!!selectedTask}
+          onClose={() => setSelectedTask(null)}
+          onComplete={() => {
+            queryClient.invalidateQueries({
+              queryKey: ['worker-tasks', user?.id]
+            });
+            queryClient.invalidateQueries({
+              queryKey: ['worker-user-data', user?.id]
+            });
+            setSelectedTask(null);
+            toast({
+              title: "Успех",
+              description: "Задача успешно завершена!"
+            });
+          }}
+        />
+      )}
     </div>;
 };
 export default WorkerDashboard;
